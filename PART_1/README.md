@@ -99,7 +99,7 @@ VSDBabySoC/
     |   ├── sandpiper_gen.vh
 ```
 
-![listed_files](./Images/listed_files.png)
+![listed_files](./Images/listed_files1.png)
 
 ---
 
