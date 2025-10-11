@@ -112,7 +112,7 @@ VSDBabySoC/
 Converts the **10-bit digital signal** from the RISC-V core into an analog output.
 
 
-![avsddac](./Images/avsddac.png)
+![avsddac](./Images/avsddac.v.png)
 
 **Inputs:**
 - `D` — 10-bit digital input from processor  
