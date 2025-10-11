@@ -3,11 +3,6 @@
 ## 🔍 Overview
 This week’s focus is on performing **Static Timing Analysis (STA)** using **OpenSTA** with Docker, Liberty files, and gate-level netlists — combined with **our innovation** of automating min/max delay analysis across different PVT corners for the **VSDBabySoC** project.
 
-We used the reference from [spatha_vsd-hdp Day7](https://github.com/spatha0011/spatha_vsd-hdp/tree/main/Day7) and enhanced it by integrating:
-- Automated **TCL scripting**
-- **PVT corner variation** handling
-- **Power, capacitance, and slew reporting**
-- **Customized BabySoC STA setup**
 
 ---
 
@@ -24,12 +19,13 @@ sudo apt update
 sudo apt install docker
 ```
 
-**Note:** Docker daemon requires root or user with docker group access.
+**Note:** Docker group requires root or user with docker group access.
 
 ### Build the Docker Image
 ```bash
 sudo docker build --file Dockerfile.ubuntu22.04 --tag opensta .
-```
+```  
+![docker_build](./Images/docker_build.png)
 
 **Error Fix Tip:**  
 If you face this error:
@@ -45,7 +41,8 @@ sudo systemctl restart docker
 ### Run the OpenSTA Shell
 ```bash
 sudo docker run -i -v $HOME:/data opensta
-```
+```  
+![docker_run](./Images/docker_run.png)
 
 ---
 
@@ -62,11 +59,13 @@ report_checks
 ```
 
 **Sample Report**
+The delays through the cells can be compared by openSTA shell's report_timing
 ```
 Startpoint: r2 (FF)
 Endpoint: r3 (FF)
 Slack (MET): 9.43 ns
 ```
+![report_check1](./Images/report_check1.png)
 
 ---
 
@@ -83,7 +82,8 @@ read_liberty -lib nangate45_slow.lib
 read_verilog example1.v
 synth -top top
 show
-```
+```  
+![example1_netlist](./Images/example1_netlist.png)
 
 **Output:**
 ```
@@ -98,11 +98,13 @@ Cells:
 
 ## 🧮 SPEF-Based Analysis
 
+This analysis is done for the parasitic delay due to capacitor , resistor ,etc..
+
 ```bash
 sudo docker run -i -v $HOME:/data opensta
 ```
 
-**TCL:**
+**In Yosys**
 ```tcl
 read_liberty /OpenSTA/examples/nangate45_slow.lib.gz
 read_verilog /OpenSTA/examples/example1.v
@@ -113,6 +115,8 @@ set_input_delay -clock clk 0 {in1 in2}
 report_checks
 ```
 
+![report_check2](./Images/report_check2.png) 
+
 Result shows parasitic delay effects, lowering slack due to net capacitance.
 
 ---
@@ -121,32 +125,39 @@ Result shows parasitic delay effects, lowering slack due to net capacitance.
 
 ### 1️⃣ Capacitance Report
 ```tcl
-report_checks -digits 4 -fields capacitance
+report_checks -digits 4 -fields capacitance 
 ```
+![report_check3](./Images/report_check3.png)
+
 
 ### 2️⃣ Slew & Fanout Report
 ```tcl
 report_checks -digits 4 -fields [list capacitance slew input_pins fanout]
-```
+```   
+![report_check4](./Images/report_check4.png)
 
 ### 3️⃣ Power Report
 ```tcl
 report_power
-```
+```  
+![report_check5](./Images/report_check5.png)
 
 ### 4️⃣ Pulse Width Report
 ```tcl
 report_pulse_width_checks
-```
+```  
+![report_check6](./Images/report_check6.png)
 
 ### 5️⃣ Units Check
 ```tcl
 report_units
-```
+```  
+![report_check7](./Images/report_check7.png)
+
 
 ---
 
-## 💡 Our Innovation: Automated Min/Max Delay Calculation
+## 💡 Automated Min/Max Delay Calculation
 
 We automated OpenSTA’s flow via a TCL script to simplify multi-lib and multi-path delay verification.
 
@@ -262,7 +273,7 @@ report_checks -path_delay min_max
 
 ---
 
-## 📦 External Resource
+## 📦 External Resource for library files 
 
 **Liberty Library Download:**
 [https://github.com/efabless/skywater-pdk-libs-sky130_fd_sc_hd/tree/master/timing](https://github.com/efabless/skywater-pdk-libs-sky130_fd_sc_hd/tree/master/timing)
@@ -270,4 +281,39 @@ report_checks -path_delay min_max
 ```bash
 git clone https://github.com/efabless/skywater-pdk-libs-sky130_fd_sc_hd.git
 cd skywater-pdk-libs-sky130_fd_sc_hd/timing
+```  
+![git_clone3](./Images/git_clone3.png)   
+
+## min/max delay lib text files after .tcl
+
+![listed_files](./Images/listed_files.png)
+
+## ⏱️ Timing Graphs  
+
+**After generating min/max delay lib files , generate the timing graphs using the following commands**
 ```
+report_checks -path_delay max -n_paths 5 -format dot > sta_tns.dot #Inside the OpenSTA shell, after linking and clock/delay setup
+dot -Tpng sta_tns.dot -o sta_tns.png  #Then render it with Graphviz
+```
+
+<details> <summary>▶ STA – TNS (Total Negative Slack)</summary>
+
+![sta_tns](./Images/sta_tns.png)
+
+
+</details> <details> <summary>▶ STA – WNS (Worst Negative Slack)</summary>
+
+![sta_wns](./Images/sta_wns.png)
+
+
+</details> <details> <summary>▶ STA – Worst Min Slack</summary>
+
+![sta_worst_min_slack](./Images/sta_worst_min_slack.png)
+
+
+</details> <details> <summary>▶ STA – Worst Max Slack</summary>
+
+![sta_worst_max_slack](./Images/sta_worst_max_slack.png)
+
+
+</details>
