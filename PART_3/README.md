@@ -3,6 +3,22 @@
 ## 🔍 Overview
 This week’s focus is on performing **Static Timing Analysis (STA)** using **OpenSTA** with Docker, Liberty files, and gate-level netlists — combined with **our innovation** of automating min/max delay analysis across different PVT corners for the **VSDBabySoC** project.
 
+## 📚 Table of Contents
+
+- [🧠 Week 3 – OpenSTA Timing Analysis and Automation (Innovative Workflow)](#-week-3--opensta-timing-analysis-and-automation-innovative-workflow)
+  - [🔍 Overview](#-overview)
+  - [⚙️ Step 1: Git Clone and Setup](#️-step-1-git-clone-and-setup)
+  - [🧩 Example 1 – Basic Timing Analysis](#-example-1--basic-timing-analysis)
+  - [⚡ Synthesis and Netlist Verification (Yosys Flow)](#-synthesis-and-netlist-verification-yosys-flow)
+  - [🧮 SPEF-Based Analysis](#-spef-based-analysis)
+  - [📊 Detailed Reports](#-detailed-reports)
+  - [💡 Automated Min/Max Delay Calculation](#-automated-minmax-delay-calculation)
+  - [🧱 VSDBabySoC Custom STA](#-vsdbabysoc-custom-sta)
+  - [⚠️ Common Errors & Fixes](#️-common-errors--fixes)
+  - [🌡️ Advanced: STA Across PVT Corners](#️-advanced-sta-across-pvt-corners)
+  - [📦 External Resource for Library Files](#-external-resource-for-library-files)
+  - [⏱️ Timing Graphs](#️-timing-graphs)
+  - [🧠 Key Takeaways](#-key-takeaways)
 
 ---
 
