@@ -5,8 +5,6 @@ This week’s focus is on performing **Static Timing Analysis (STA)** using **Op
 
 ## 📚 Table of Contents
 
-- [🧠 Week 3 – OpenSTA Timing Analysis and Automation (Innovative Workflow)](#-week-3--opensta-timing-analysis-and-automation-innovative-workflow)
-  - [🔍 Overview](#-overview)
   - [⚙️ Step 1: Git Clone and Setup](#️-step-1-git-clone-and-setup)
   - [🧩 Example 1 – Basic Timing Analysis](#-example-1--basic-timing-analysis)
   - [⚡ Synthesis and Netlist Verification (Yosys Flow)](#-synthesis-and-netlist-verification-yosys-flow)
