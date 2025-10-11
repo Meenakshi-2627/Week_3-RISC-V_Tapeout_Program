@@ -104,7 +104,7 @@ This analysis is done for the parasitic delay due to capacitor , resistor ,etc..
 sudo docker run -i -v $HOME:/data opensta
 ```
 
-**In Yosys**
+**Script**
 ```tcl
 read_liberty /OpenSTA/examples/nangate45_slow.lib.gz
 read_verilog /OpenSTA/examples/example1.v
@@ -115,7 +115,6 @@ set_input_delay -clock clk 0 {in1 in2}
 report_checks
 ```
 
-![report_check2](./Images/report_check2.png) 
 
 Result shows parasitic delay effects, lowering slack due to net capacitance.
 
@@ -172,10 +171,15 @@ set_input_delay -clock clk 0 {in1 in2}
 report_checks -path_delay min_max
 ```
 
+_**Note:** You should mention the read_liberty and read_verilog file as with location_
+
 **Run Command**
 ```bash
 sudo docker run -it -v $HOME:/data opensta /data/OpenSTA/OpenSTA/examples/min_max_delays.tcl
-```
+```  
+
+**Generated Report**  
+![report_check2](./Images/report_check2.png) 
 
 ---
 
@@ -187,22 +191,24 @@ mkdir -p examples/timing_libs/
 mkdir -p examples/BabySoC/
 ```
 
-**Copy:**
+**Need of these files :**
 ```
-sky130_fd_sc_hd__tt_025C_1v80.lib
-avsdpll.lib
-avsddac.lib
-vsdbabysoc.synth.v
-vsdbabysoc_synthesis.sdc
+**Standard cell library:** sky130_fd_sc_hd__tt_025C_1v80.lib #/home/meena/VLSI/VSDBabySoC/src/lib
+
+**IP-specific Liberty libraries:** avsdpll.lib, avsddac.lib #/home/meena/VLSI/VSDBabySoC/src/lib
+
+**Synthesized gate-level netlist:** vsdbabysoc.synth.v #/home/meena/VLSI/VSDBabySoC/src/module
+
+**Timing constraints:** vsdbabysoc_synthesis.sdc #/home/meena/VLSI/VSDBabySoC/src/sdc
 ```
 
-### File Paths
-```
-/data/OpenSTA/OpenSTA/examples/timing_libs/
-/data/OpenSTA/OpenSTA/examples/BabySoC/
-```
+**File Paths**
+|Folder|Files|
+|------|-----|
+|`timing_libs`|`avsddac.lib`,`avsdpll.lib`,`sky130_fd_sc_hd__tt_025C_1v80.lib`|
+|`BabySoC`|`vsdbabysoc.synth.v`,`vsdbabysoc_synthesis.sdc`,`gcd_sky130hd.sdc`|
 
-**vsdbabysoc_min_max_delays.tcl**
+## vsdbabysoc_min_max_delays.tcl
 ```tcl
 read_liberty -min /data/OpenSTA/OpenSTA/examples/timing_libs/sky130_fd_sc_hd__tt_025C_1v80.lib
 read_liberty -max /data/OpenSTA/OpenSTA/examples/timing_libs/sky130_fd_sc_hd__tt_025C_1v80.lib
@@ -253,24 +259,6 @@ pin (VDD) {
 
 ## 🌡️ Advanced: STA Across PVT Corners
 
-**sta_across_pvt.tcl**
-```tcl
-set list_of_lib_files {
-    "sky130_fd_sc_hd__tt_025C_1v80.lib"
-    "sky130_fd_sc_hd__ss_100C_1v60.lib"
-    "sky130_fd_sc_hd__ff_n40C_1v95.lib"
-}
-
-foreach lib $list_of_lib_files {
-    read_liberty $lib
-}
-
-read_verilog /data/OpenSTA/OpenSTA/examples/BabySoC/vsdbabysoc.synth.v
-link_design vsdbabysoc
-read_sdc /data/OpenSTA/OpenSTA/examples/BabySoC/vsdbabysoc_synthesis.sdc
-report_checks -path_delay min_max
-```
-
 ---
 
 ## 📦 External Resource for library files 
@@ -284,6 +272,87 @@ cd skywater-pdk-libs-sky130_fd_sc_hd/timing
 ```  
 ![git_clone3](./Images/git_clone3.png)   
 
+## sta_across_pvt.tcl
+```tcl
+# List of Liberty files for different PVT corners
+set list_of_lib_files {
+    "sky130_fd_sc_hd__tt_025C_1v80.lib"
+    "sky130_fd_sc_hd__ff_100C_1v65.lib"
+    "sky130_fd_sc_hd__ff_100C_1v95.lib"
+    "sky130_fd_sc_hd__ff_n40C_1v56.lib"
+    "sky130_fd_sc_hd__ff_n40C_1v65.lib"
+    "sky130_fd_sc_hd__ff_n40C_1v76.lib"
+    "sky130_fd_sc_hd__ss_100C_1v40.lib"
+    "sky130_fd_sc_hd__ss_100C_1v60.lib"
+    "sky130_fd_sc_hd__ss_n40C_1v28.lib"
+    "sky130_fd_sc_hd__ss_n40C_1v35.lib"
+    "sky130_fd_sc_hd__ss_n40C_1v40.lib"
+    "sky130_fd_sc_hd__ss_n40C_1v44.lib"
+    "sky130_fd_sc_hd__ss_n40C_1v76.lib"
+}
+# Read common timing libraries
+read_liberty /data/OpenSTA/OpenSTA/examples/timing_libs/avsdpll.lib
+read_liberty /data/OpenSTA/OpenSTA/examples/timing_libs/avsddac.lib
+
+foreach lib_file $list_of_lib_files {
+
+    read_liberty /data/OpenSTA/OpenSTA/examples/BabySoC/skywater-pdk-libs-sky130_fd_sc_hd/timing/$lib_file
+    read_verilog /data/OpenSTA/OpenSTA/examples/BabySoC/vsdbabysoc.synth.v
+    link_design vsdbabysoc
+    current_design
+    read_sdc /data/OpenSTA/OpenSTA/examples/BabySoC/vsdbabysoc_synthesis.sdc
+    check_setup -verbose
+
+    report_checks -path_delay min_max -fields {nets cap slew input_pins fanout} -digits 4 \
+        > /data/OpenSTA/OpenSTA/examples/BabySoC/STA_OUTPUT/min_max_$lib_file.txt
+
+    exec echo "$lib_file" >> /data/OpenSTA/OpenSTA/examples/BabySoC/STA_OUTPUT/sta_worst_max_slack.txt
+    report_worst_slack -max -digits 4 >> /data/OpenSTA/OpenSTA/examples/BabySoC/STA_OUTPUT/sta_worst_max_slack.txt
+
+    exec echo "$lib_file" >> /data/OpenSTA/OpenSTA/examples/BabySoC/STA_OUTPUT/sta_worst_min_slack.txt
+    report_worst_slack -min -digits 4 >> /data/OpenSTA/OpenSTA/examples/BabySoC/STA_OUTPUT/sta_worst_min_slack.txt
+
+    exec echo "$lib_file" >> /data/OpenSTA/OpenSTA/examples/BabySoC/STA_OUTPUT/sta_tns.txt
+    report_tns -digits 4 >> /data/OpenSTA/OpenSTA/examples/BabySoC/STA_OUTPUT/sta_tns.txt
+
+    exec echo "$lib_file" >> /data/OpenSTA/OpenSTA/examples/BabySoC/STA_OUTPUT/sta_wns.txt
+    report_wns -digits 4 >> /data/OpenSTA/OpenSTA/examples/BabySoC/STA_OUTPUT/sta_wns.txt
+
+}
+``` 
+
+**Running the script**  
+```
+ sudo docker run -it -v /home/meena:/data opensta /data/OpenSTA/OpenSTA/examples/BabySoC/sta_across_pvt.tcl
+```
+
+**ERROR :**
+This could be solved by setting up the input and output delay ports properly at `vsdbabysoc_synthesis.sdc`
+```
+Warning: There are 6 input ports missing set_input_delay.
+  ENb_CP
+  ENb_VCO
+  REF
+  VCO_IN
+  VREFH
+  reset
+Warning: There is 1 output port missing set_output_delay.
+  OUT
+Warning: There are 2 unconstrained endpoints.
+  OUT
+  _9607_/D
+```
+
+## SDC file changes:
+```
+set_units -time ns
+create_clock -name clk -period 11 [get_pins {pll/CLK}]
+set_max_delay 10 -from [get_clocks clk] -to [get_ports {OUT}]
+set_input_delay -clock clk -max 2.0 [get_ports {ENb_CP ENb_VCO REF VCO_IN VREFH reset}]
+set_output_delay -clock clk -max 2.0 [get_ports {OUT}]
+set_false_path -to [get_ports {OUT}]
+```
+
 ## min/max delay lib text files after .tcl
 
 ![listed_files](./Images/listed_files.png)
@@ -296,24 +365,22 @@ report_checks -path_delay max -n_paths 5 -format dot > sta_tns.dot #Inside the O
 dot -Tpng sta_tns.dot -o sta_tns.png  #Then render it with Graphviz
 ```
 
-<details> <summary>▶ STA – TNS (Total Negative Slack)</summary>
+▶ STA – TNS (Total Negative Slack)
 
 ![sta_tns](./Images/sta_tns.png)
 
 
-</details> <details> <summary>▶ STA – WNS (Worst Negative Slack)</summary>
+▶ STA – WNS (Worst Negative Slack)
 
 ![sta_wns](./Images/sta_wns.png)
 
 
-</details> <details> <summary>▶ STA – Worst Min Slack</summary>
+▶ STA – Worst Min Slack
 
 ![sta_worst_min_slack](./Images/sta_worst_min_slack.png)
 
 
-</details> <details> <summary>▶ STA – Worst Max Slack</summary>
+▶ STA – Worst Max Slack
 
 ![sta_worst_max_slack](./Images/sta_worst_max_slack.png)
 
-
-</details>
